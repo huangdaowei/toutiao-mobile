@@ -21,6 +21,7 @@
         icon-prefix="toutiao"
         left-icon="shouji"
         name="mobile"
+        center
         placeholder="请输入手机号"
         :rules="formRules.mobile"
       />
@@ -30,12 +31,25 @@
         icon-prefix="toutiao"
         left-icon="yanzhengma"
         name="code"
+        center
         placeholder="请输入验证码"
         :rules="formRules.code"
       >
         <template #button>
-          <van-count-down :time="1000 * 60" format="ss s" />
-          <van-button class="send-btn" size="mini" @click.prevent="onSendSms" round>获取验证码</van-button>
+          <van-count-down
+            v-if="isCountDownShow"
+            :time="1000 * 60"
+            format="ss s"
+            @finish="isCountDownShow = false"
+          />
+          <van-button
+            v-else
+            class="send-btn"
+            size="mini"
+            :loading="isSendSmsLoading"
+            @click.prevent="onSendSms"
+            round
+          >获取验证码</van-button>
         </template>
       </van-field>
       <!-- 登录按钮 -->
@@ -47,7 +61,7 @@
 </template>
 
 <script>
-import { login } from '@/api/user'
+import { login, sendSms } from '@/api/user'
 import { Toast } from 'vant'
 export default {
   name: 'Login',
@@ -66,7 +80,9 @@ export default {
           { required: true, message: '请输入验证码' },
           { pattern: /\d{6}$/, message: '请输入正确的验证码' }
         ]
-      }
+      },
+      isCountDownShow: false, // 显示倒计时或发送验证码按钮
+      isSendSmsLoading: false // 发送验证码按钮的loading
     }
   },
   methods: {
@@ -80,10 +96,13 @@ export default {
       // 2、封装请求方法
       // 3、请求调用登录
       try {
-        const res = await login(this.user)
+        const { data } = await login(this.user)
         // 4、处理响应结果
-        console.log(res)
+        // console.log(res)
         Toast.success('登录成功')
+
+        // 将后端返回的用户状态（token）放到vuex容器中
+        this.$store.commit('setUser', data.data)
       } catch (err) {
         console.log(err)
         Toast.fail('登录失败，手机号或验证码错误')
@@ -105,8 +124,12 @@ export default {
         await this.$refs['login-form'].validate('mobile')
 
         // 验证通过，请求发送验证码
-        // await sendSms(this.user.mobile)
-        // console.log(res)
+        this.isSendSmsLoading = true
+        await sendSms(this.user.mobile)
+
+        // 短信发出去了，隐藏按钮，显示倒计时
+        this.isCountDownShow = true
+        // 倒计时结束，隐藏显示器，显示按钮（监视倒计时的finish事件处理）
       } catch (err) {
         // console.log('验证失败', err)
         // try里任何代码的错误都会进入catch中
@@ -129,6 +152,8 @@ export default {
           position: 'top'
         })
       }
+      // 无论验证码发送成功与否，都应该关闭loading
+      this.isSendSmsLoading = false
     }
   }
 }
