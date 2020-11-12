@@ -2,6 +2,9 @@
  * 用户相关请求模块
  */
 import request from '@/utils/request'
+// 在非组件模块中获取store，必须通过这种方式
+// 这里单独加载store，和组件中通过this.$store是一样的
+// import store from '@/store'
 
 /**
  * 登录注册
@@ -21,5 +24,28 @@ export const sendSms = mobile => {
   return request({
     method: 'GET',
     url: `/app/v1_0/sms/codes/${mobile}`
+  })
+}
+
+/**
+ * 获取登录用户信息
+ */
+export const getCurrentUser = () => {
+  return request({
+    method: 'GET',
+    url: '/app/v1_0/user'
+    // headers: {
+    //   Authorization: `Bearer ${store.state.user.token}`
+    // }
+  })
+}
+
+/**
+ * 获取用户频道列表
+ */
+export const getUserChannels = () => {
+  return request({
+    method: 'GET',
+    url: '/app/v1_0/user/channels'
   })
 }
